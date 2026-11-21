@@ -1,178 +1,42 @@
-"""
-SimpleSLPRegressor - Single Layer Perceptron for Regression
-"""
+"""Continuous single- or multi-output regression with one hidden layer."""
 
-from typing import Optional, Tuple
 import numpy as np
-from numpy.typing import NDArray
+from sklearn.base import RegressorMixin
+from sklearn.preprocessing import StandardScaler
+from sklearn.utils.validation import check_X_y
+
 from slp_base import BaseSLPEstimator
 
 
-class SimpleSLPRegressor(BaseSLPEstimator):
-    """
-    Simple Single Layer Perceptron Regressor with one hidden layer.
+class SimpleSLPRegressor(RegressorMixin, BaseSLPEstimator):
+    """Use an identity output and minimize mean squared error."""
 
-    Compatible interface with sklearn.neural_network.MLPRegressor.
-    """
+    def _output_activation(self, z2):
+        return z2
 
-    def __init__(
-        self,
-        hidden_layer_size: int = 100,
-        activation: str = "logistic",
-        learning_rate: float = 0.001,
-        max_iter: int = 200,
-        random_state: Optional[int] = None,
-    ) -> None:
-        """
-        Initialize the SLP regressor.
+    def _output_error(self, y, y_pred):
+        return 2 * (y_pred - y) / y.shape[1]
 
-        Parameters:
-        -----------
-        hidden_layer_size : int
-            Number of neurons in the hidden layer
-        activation : str
-            Activation function ('identity', 'logistic', 'tanh', 'relu'}, default='logistic')
-        learning_rate : float
-            Learning rate for gradient descent
-        max_iter : int
-            Maximum number of iterations
-        random_state : int or None
-            Random seed for reproducibility
-        """
-        super().__init__(
-            hidden_layer_size, activation, learning_rate, max_iter, random_state
-        )
+    def _compute_loss(self, y_true, y_pred):
+        return float(np.mean((y_pred - y_true) ** 2))
 
-    def _forward_propagation(self, X: NDArray[np.floating]) -> Tuple[
-        NDArray[np.floating],
-        NDArray[np.floating],
-        NDArray[np.floating],
-        NDArray[np.floating],
-    ]:
-        """
-        Perform forward propagation.
+    def _prepare_targets(self, y):
+        self._target_scaler = StandardScaler().fit(y)
+        return self._transform_targets(y)
 
-        Parameters:
-        -----------
-        X : array-like, shape (n_samples, n_features)
-            Input data
+    def _transform_targets(self, y):
+        return self._target_scaler.transform(y)
 
-        Returns:
-        --------
-        z1, a1, z2, y_pred : tuple of arrays
-            Intermediate values for backpropagation
-        """
-        # TODO: Implement forward propagation
-        pass
+    def fit(self, X, y):
+        """Train from feature rows and one or more continuous targets."""
+        self._validate_parameters()
+        X, y = check_X_y(X, y, dtype=float, multi_output=True, y_numeric=True)
+        y = np.asarray(y, dtype=float).reshape(len(X), -1)
+        self._train(X, y)
+        return self
 
-    def _backward_propagation(
-        self,
-        X: NDArray[np.floating],
-        y: NDArray[np.floating],
-        z1: NDArray[np.floating],
-        a1: NDArray[np.floating],
-        z2: NDArray[np.floating],
-        y_pred: NDArray[np.floating],
-    ) -> Tuple[
-        NDArray[np.floating],
-        NDArray[np.floating],
-        NDArray[np.floating],
-        NDArray[np.floating],
-    ]:
-        """
-        Perform backpropagation to compute gradients.
-
-        Parameters:
-        -----------
-        X : array-like, shape (n_samples, n_features)
-            Input data
-        y : array-like, shape (n_samples, n_outputs)
-            Target values
-        z1, a1, z2, y_pred : arrays
-            Values from forward propagation
-
-        Returns:
-        --------
-        dW1, db1, dW2, db2 : tuple of arrays
-            Gradients for weights and biases
-        """
-        # TODO: Implement backpropagation for MSE loss
-        pass
-
-    def _compute_loss(
-        self, y_true: NDArray[np.floating], y_pred: NDArray[np.floating]
-    ) -> float:
-        """
-        Compute mean squared error loss.
-
-        Parameters:
-        -----------
-        y_true : array-like
-            True values
-        y_pred : array-like
-            Predicted values
-
-        Returns:
-        --------
-        loss : float
-            MSE loss
-        """
-        # TODO: Implement MSE
-        pass
-
-    def fit(
-        self, X: NDArray[np.floating], y: NDArray[np.floating]
-    ) -> "SimpleSLPRegressor":
-        """
-        Fit the SLP regressor to training data.
-
-        Parameters:
-        -----------
-        X : array-like, shape (n_samples, n_features)
-            Training data
-        y : array-like, shape (n_samples,) or (n_samples, n_outputs)
-            Target values
-
-        Returns:
-        --------
-        self : object
-            Fitted estimator
-        """
-        # TODO: Implement training loop (similar to classifier)
-        pass
-
-    def predict(self, X: NDArray[np.floating]) -> NDArray[np.floating]:
-        """
-        Predict using the trained model.
-
-        Parameters:
-        -----------
-        X : array-like, shape (n_samples, n_features)
-            Samples
-
-        Returns:
-        --------
-        y_pred : array-like, shape (n_samples,) or (n_samples, n_outputs)
-            Predicted values
-        """
-        # TODO: Implement prediction
-        pass
-
-    def score(self, X: NDArray[np.floating], y: NDArray[np.floating]) -> float:
-        """
-        Return the R² score on the given test data.
-
-        Parameters:
-        -----------
-        X : array-like, shape (n_samples, n_features)
-            Test samples
-        y : array-like, shape (n_samples,) or (n_samples, n_outputs)
-            True values
-
-        Returns:
-        --------
-        score : float
-            R² score
-        """
-        # TODO: Implement R² score
-        pass
+    def predict(self, X):
+        """Return a vector for one output and a matrix for multiple outputs."""
+        output = self._predict_output(X)
+        predictions = self._target_scaler.inverse_transform(output)
+        return predictions.ravel() if self.n_outputs_ == 1 else predictions

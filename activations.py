@@ -1,133 +1,41 @@
-"""
-Activation Functions and Their Derivatives
-"""
+"""Vectorized activation functions and their derivatives."""
 
 import numpy as np
-from numpy.typing import NDArray
 
 
-def relu(z: NDArray[np.floating]) -> NDArray[np.floating]:
-    """
-    ReLU activation function.
-
-    Parameters:
-    -----------
-    z : array-like
-        Input values
-
-    Returns:
-    --------
-    array-like
-        Activated values
-    """
-    # TODO: Implement ReLU
-    pass
+def relu(z):
+    """Return the positive part of each input."""
+    return np.maximum(0, z)
 
 
-def relu_derivative(z: NDArray[np.floating]) -> NDArray[np.floating]:
-    """
-    Derivative of ReLU activation.
-
-    Parameters:
-    -----------
-    z : array-like
-        Input values (pre-activation)
-
-    Returns:
-    --------
-    array-like
-        Gradient values
-    """
-    # TODO: Implement ReLU derivative
-    pass
+def relu_derivative(z):
+    """Use zero as the derivative at the ReLU kink."""
+    return (np.asarray(z) > 0).astype(float)
 
 
-def tanh(z: NDArray[np.floating]) -> NDArray[np.floating]:
-    """
-    Hyperbolic tangent activation function.
-
-    Parameters:
-    -----------
-    z : array-like
-        Input values
-
-    Returns:
-    --------
-    array-like
-        Activated values
-    """
-    # TODO: Implement tanh (can use np.tanh)
-    pass
+def tanh(z):
+    """Return the hyperbolic tangent."""
+    return np.tanh(z)
 
 
-def tanh_derivative(z: NDArray[np.floating]) -> NDArray[np.floating]:
-    """
-    Derivative of tanh activation.
-
-    Parameters:
-    -----------
-    z : array-like
-        Input values (pre-activation)
-
-    Returns:
-    --------
-    array-like
-        Gradient values
-    """
-    # TODO: Implement tanh derivative
-    pass
+def tanh_derivative(z):
+    """Differentiate tanh with respect to its input."""
+    return 1 - np.tanh(z) ** 2
 
 
-def logistic(z: NDArray[np.floating]) -> NDArray[np.floating]:
-    """
-    Logistic (sigmoid) activation function.
-
-    Parameters:
-    -----------
-    z : array-like
-        Input values
-
-    Returns:
-    --------
-    array-like
-        Activated values
-    """
-    # TODO: Implement sigmoid
-    # Hint: Use np.clip to avoid overflow
-    pass
+def logistic(z):
+    """Compute the sigmoid without exponentiating large positive values."""
+    return np.exp(-np.logaddexp(0, -np.asarray(z, dtype=float)))
 
 
-def logistic_derivative(z: NDArray[np.floating]) -> NDArray[np.floating]:
-    """
-    Derivative of logistic activation.
-
-    Parameters:
-    -----------
-    z : array-like
-        Input values (pre-activation)
-
-    Returns:
-    --------
-    array-like
-        Gradient values
-    """
-    # TODO: Implement sigmoid derivative
-    pass
+def logistic_derivative(z):
+    """Differentiate the sigmoid with respect to its input."""
+    z = np.asarray(z, dtype=float)
+    return logistic(z) * logistic(-z)
 
 
-def softmax(z: NDArray[np.floating]) -> NDArray[np.floating]:
-    """
-    Softmax activation for output layer (classification).
-
-    Parameters:
-    -----------
-    z : array-like, shape (n_samples, n_classes)
-        Input values
-
-    Returns:
-    --------
-    array-like, shape (n_samples, n_classes)
-        Probabilities that sum to 1 for each sample
-    """
-    # TODO: Implement softmax
-    pass
+def softmax(z):
+    """Normalize logits into probabilities along the last axis."""
+    shifted = z - np.max(z, axis=-1, keepdims=True)
+    exponentials = np.exp(shifted)
+    return exponentials / exponentials.sum(axis=-1, keepdims=True)
